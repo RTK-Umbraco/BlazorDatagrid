@@ -39,8 +39,9 @@
 
 @code {
     private List<File> files = new();
-
     private Dialog dialog;
+
+
     private async Task AddFile(InputFileChangeEventArgs e)
     {
         var files = await localStorage.GetItemAsync<List<File>>("Files") ?? new List<File>();
@@ -75,8 +76,7 @@
     {
         files = await localStorage.GetItemAsync<List<File>>("Files");
 
-
-        dialog.Show("File");
+        dialog.Show(files[0], files, "File");
     }
 
     private File CreateFile(IBrowserFile file)

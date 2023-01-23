@@ -10,13 +10,32 @@
         </div>
 
         <div class="toast-body">
-            @BodyText
-            <img src="~/icon-192.png" width="500" height="600" />
+            <p>File name: @File?.Name.ToString()</p>
+
+            <p>File type: @File?.Type.ToString()</p>
+
+            <p>File Size: @File?.Size</p>
+        </div>
+
+        <div>
+            @if (File == null)
+            {
+                <p><em>Loading...</em></p>
+            }
+            <EditForm Model=@File OnValidSubmit="UpdateFileName">
+                <div class="form-group">
+                    <label for="Name">Change file name</label>
+                    <InputText @bind-Value=File.Name class="form-control" id="Name" />
+                </div>
+                <input type="submit" class="btn btn-primary" value="Save" />
+            </EditForm>
         </div>
     </div>
 </div>
 
 @code {
+    private Datagrid datagrid;
+
     [Parameter]
     public bool IsVisible { get; set; }
 
@@ -29,15 +48,20 @@
     [Parameter]
     public string? BodyText { get; set; }
 
-    [Parameter]
-    public File? File { get; set; }
+    public File File { get; set; }
 
-    public void Show(string bodyText, string headerText = "")
+    public List<File> Files { get; set; }
+
+    private string fileNameChange;
+
+    public void Show(File file, List<File> files, string bodyText, string headerText = "")
     {
         HeaderText = headerText;
         BodyText = bodyText;
         IsVisible = true;
         StateHasChanged();
+        File = file;
+        Files = files;
     }
 
     private void Close()
@@ -46,5 +70,12 @@
         BodyText = string.Empty;
         IsVisible = false;
         StateHasChanged();
+    }
+
+    public async Task UpdateFileName()
+    {
+        var file = Files.FirstOrDefault(file => file.Name == file.Name);
+
+        file.Name = fileNameChange;
     }
 }
