@@ -1,0 +1,86 @@
+﻿@page "/datagrid"
+@inject Blazored.LocalStorage.ILocalStorageService localStorage
+
+<PageTitle>Datagrid</PageTitle>
+
+<h1>Datagrid</h1>
+
+<InputFile OnChange="@AddFile" multiple />
+
+<button @onclick="ClearLocalStorage">Clear</button>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>File name</th>
+            <th>File type</th>
+            <th>File size (bytes)</th>
+            <th>Edit</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var file in files)
+        {
+            <tr>
+                <td>@file.Name.ToString()</td>
+                <td>@file.Type.ToString()</td>
+                <td>@file.Size</td>
+                <td>
+                    <button type="button" @onclick="OpenDialog" class="btn btn-default btn-sm">
+                        <span class="glyphicon glyphicon-edit"></span> Edit
+                    </button>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<Dialog @ref="dialog"/>
+
+@code {
+    private List<File> files = new();
+
+    private Dialog dialog;
+    private async Task AddFile(InputFileChangeEventArgs e)
+    {
+        var files = await localStorage.GetItemAsync<List<File>>("Files") ?? new List<File>();
+
+        foreach (var file in e.GetMultipleFiles(1))
+        {
+            var fileModel = CreateFile(e.File);
+            files.Add(fileModel);
+        }
+
+        await localStorage.SetItemAsync("Files", files);
+        await GetFiles();
+    }
+
+    private async Task GetFiles()
+    {
+        files = await localStorage.GetItemAsync<List<File>>("Files");
+    }
+
+    private async Task ClearLocalStorage()
+    {
+        files = new List<File>();
+        await localStorage.ClearAsync();
+    }
+
+    private async Task UpdateFile()
+    {
+        files = await localStorage.GetItemAsync<List<File>>("Files");
+    }
+
+    private async Task OpenDialog()
+    {
+        files = await localStorage.GetItemAsync<List<File>>("Files");
+
+
+        dialog.Show("File");
+    }
+
+    private File CreateFile(IBrowserFile file)
+    {
+        return new File(file.Name, file.ContentType, file.Size);
+    }
+}
