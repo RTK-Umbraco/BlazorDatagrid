@@ -12,43 +12,65 @@
 <table class="table">
     <thead>
         <tr>
+            <th>Id</th>
             <th>File name</th>
             <th>File type</th>
             <th>File size (bytes)</th>
+            <th>Image</th>
             <th>Edit</th>
         </tr>
     </thead>
     <tbody>
-        @foreach (var file in files)
+        @foreach (var file in @GridData)
         {
             <tr>
+                <td>@file.Id.ToString()</td>
                 <td>@file.Name.ToString()</td>
                 <td>@file.Type.ToString()</td>
                 <td>@file.Size</td>
+                <td><img src="@file.Image" /></td>
                 <td>
-                    <button type="button" @onclick="OpenDialog" class="btn btn-default btn-sm">
-                        <span class="glyphicon glyphicon-edit"></span> Edit
-                    </button>
+                    <button class="glyphicon glyphicon-edit" @onclick="(() => OpenDialog(file.Id))">Edit</button>
                 </td>
             </tr>
         }
     </tbody>
 </table>
 
-<Dialog @ref="dialog"/>
+@if (_isVisable)
+{
+    <div style="background-color: lightslategray; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">
+
+        <label>Change file name</label>
+
+        <p>File name: @GridData.First(x => x.Id == id).Name</p>
+        <p>File type: @GridData.First(x => x.Id == id).Type</p>
+        <p>File size: @GridData.First(x => x.Id == id).Size</p>
+
+        <input type="text" @bind-value="@GridData.First(x => x.Id == id).Name" @bind-value:event="oninput"><br>
+
+        <button type="button" @onclick="Close" class="btn bg-danger">Close</button>
+        <button type="button" @onclick="ConfirmFilenameChange" class="btn bg-success">Confirm</button>
+    </div>
+}
 
 @code {
-    private List<File> files = new();
-    private Dialog dialog;
+    private Guid id;
+    private bool _isVisable = false;
+    public ObservableCollection<File> GridData { get; set; } = new();
 
+    protected async override Task OnInitializedAsync()
+    {
+        await GetFiles();
+    }
 
     private async Task AddFile(InputFileChangeEventArgs e)
     {
-        var files = await localStorage.GetItemAsync<List<File>>("Files") ?? new List<File>();
+        var files = await localStorage.GetItemAsync<ObservableCollection<File>>("Files") ?? new ObservableCollection<File>();
 
         foreach (var file in e.GetMultipleFiles(1))
         {
-            var fileModel = CreateFile(e.File);
+            var fileModel = await CreateFile(e.File);
             files.Add(fileModel);
         }
 
@@ -58,29 +80,61 @@
 
     private async Task GetFiles()
     {
-        files = await localStorage.GetItemAsync<List<File>>("Files");
+        if (await localStorage.ContainKeyAsync("Files"))
+        {
+            GridData = await localStorage.GetItemAsync<ObservableCollection<File>>("Files");
+        }
     }
 
     private async Task ClearLocalStorage()
     {
-        files = new List<File>();
+        GridData.Clear();
         await localStorage.ClearAsync();
     }
 
-    private async Task UpdateFile()
+    private async Task<File> CreateFile(IBrowserFile file)
     {
-        files = await localStorage.GetItemAsync<List<File>>("Files");
+        var imageDataUrl = await GetImageUrl(file);
+        return new File(Guid.NewGuid(), file.Name, file.ContentType, file.Size, imageDataUrl);
     }
 
-    private async Task OpenDialog()
+    private async Task<string> GetImageUrl(IBrowserFile file)
     {
-        files = await localStorage.GetItemAsync<List<File>>("Files");
+        const string imageFormat = "image/gif";
 
-        dialog.Show(files[0], files, "File");
+        var isValidFormat = file.ContentType == "image/gif" || file.ContentType == "image/png" || file.ContentType == "image/jpeg";
+        if (isValidFormat)
+        {
+            var resizedImageFile = await file.RequestImageFileAsync(imageFormat, 100, 100);
+            var buffer = new byte[resizedImageFile.Size];
+            await resizedImageFile.OpenReadStream().ReadAsync(buffer);
+
+            var imageDataUrl = $"data:{imageFormat};base64,{Convert.ToBase64String(buffer)}";
+
+            return imageDataUrl;
+        }
+
+        return string.Empty;
     }
 
-    private File CreateFile(IBrowserFile file)
+    private void OpenDialog(Guid fileId)
     {
-        return new File(file.Name, file.ContentType, file.Size);
+        _isVisable = true;
+
+        id = fileId;
+    }
+
+    private async Task ConfirmFilenameChange()
+    {
+        await localStorage.SetItemAsync("Files", GridData);
+
+        _isVisable = false;
+    }
+
+    private async Task Close()
+    {
+        _isVisable = false;
+
+        await GetFiles();
     }
 }
