@@ -21,9 +21,9 @@ namespace BlazorDatagridDomain
         public string Type { get; set; }
         public double Size { get; set; }
         public string Image { get; set; }
-        public File(Guid id, string name, string type, double size, string image)
+        public File(string name, string type, double size, string image)
         {
-            this.Id = id;
+            this.Id = Guid.NewGuid();
             this.Name = name;
             this.Type = type;
             this.Size = size;

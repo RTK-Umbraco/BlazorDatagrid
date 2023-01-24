@@ -95,7 +95,7 @@
     private async Task<File> CreateFile(IBrowserFile file)
     {
         var imageDataUrl = await GetImageUrl(file);
-        return new File(Guid.NewGuid(), file.Name, file.ContentType, file.Size, imageDataUrl);
+        return new File(file.Name, file.ContentType, file.Size, imageDataUrl);
     }
 
     private async Task<string> GetImageUrl(IBrowserFile file)
